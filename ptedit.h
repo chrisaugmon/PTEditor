@@ -1,14 +1,8 @@
 /** @file */
 
-#ifndef _PTEDITOR_H_
-#define _PTEDITOR_H_
-
+#pragma once
 #include "module/pteditor.h"
 #include <sys/types.h>
-
-#if defined(WINDOWS)
-typedef size_t pid_t;
-#endif
 
 /**
  * The implementation of PTEditor to use
@@ -33,8 +27,6 @@ typedef size_t pid_t;
  * @{
  *
  */
-
-#if defined(__i386__) || defined(__x86_64__) || defined(_WIN64)
 
  /** Page is present */
 #define PTEDIT_PAGE_BIT_PRESENT 0
@@ -77,58 +69,6 @@ typedef size_t pid_t;
 /** No execute: only valid after cpuid check */
 #define PTEDIT_PAGE_BIT_NX 63
 
-#elif defined(__aarch64__)
-
- /** Entry type 1/2 */
-#define PTEDIT_PAGE_BIT_TYPE_BIT0 0
-/** Entry type 1/2 */
-#define PTEDIT_PAGE_BIT_TYPE_BIT1 1
-/** Memory attribute index 1/3 */
-#define PTEDIT_PAGE_BIT_MAIR_BIT0 2
-/** Memory attribute index 2/3 */
-#define PTEDIT_PAGE_BIT_MAIR_BIT1 3
-/** Memory attribute index 3/3 */
-#define PTEDIT_PAGE_BIT_MAIR_BIT2 4
-/** Page is non-secure */
-#define PTEDIT_PAGE_BIT_NON_SECURE 5
-/** Page permissions 1/2 */
-#define PTEDIT_PAGE_BIT_PERMISSION_BIT0 6
-/** Page permissions 2/2 */
-#define PTEDIT_PAGE_BIT_PERMISSION_BIT1 7
-/** Shareability domain 1/2 */
-#define PTEDIT_PAGE_BIT_SHARE_BIT0 8
-/** Shareability domain 2/2 */
-#define PTEDIT_PAGE_BIT_SHARE_BIT1 9
-/** Page was accessed (raised by CPU) */
-#define PTEDIT_PAGE_BIT_ACCESSED 10
-/** Page is not global */
-#define PTEDIT_PAGE_BIT_NOT_GLOBAL 11
-/** Contiguous */
-#define PTEDIT_PAGE_BIT_CONTIGUOUS 52
-/** Privileged execute never */
-#define PTEDIT_PAGE_BIT_PXN 53
-/** Execute never */
-#define PTEDIT_PAGE_BIT_XN 54
-/** Available for programmer */
-#define PTEDIT_PAGE_BIT_SOFTW1 55
-/** Available for programmer */
-#define PTEDIT_PAGE_BIT_SOFTW2 56
-/** Available for programmer */
-#define PTEDIT_PAGE_BIT_SOFTW3 57
-/** Available for programmer */
-#define PTEDIT_PAGE_BIT_SOFTW4 58
-/** Available for programmer */
-#define PTEDIT_PAGE_BIT_SOFTW5 59
-/** Available for programmer */
-#define PTEDIT_PAGE_BIT_SOFTW6 60
-/** Available for programmer */
-#define PTEDIT_PAGE_BIT_SOFTW7 61
-/** Available for programmer */
-#define PTEDIT_PAGE_BIT_SOFTW8 62
-/** Available for programmer */
-#define PTEDIT_PAGE_BIT_SOFTW9 63
-
-#endif
 /** @} */
 
 /**
@@ -138,7 +78,6 @@ typedef size_t pid_t;
  *
  * @{
  */
-#if defined(__i386__) || defined(__x86_64__) || defined(_WIN64)
 
  /** Strong uncachable (nothing is cached) */
 #define PTEDIT_MT_UC      0
@@ -153,16 +92,6 @@ typedef size_t pid_t;
 /** Uncachable (as UC, but can be changed to WC through MTRRs) */
 #define PTEDIT_MT_UCMINUS 7
 
-#elif defined(__aarch64__)
-
- /** Strong uncachable (nothing is cached) */
-#define PTEDIT_MT_UC      0x44
-/** Write through (read accesses are cached, write access are written to cache and memory) */
-#define PTEDIT_MT_WT      0xbb
-/** Write back (read and write accesses are cached) */
-#define PTEDIT_MT_WB      0xff
-
-#endif
 /** @} */
 
 
@@ -200,6 +129,9 @@ void ptedit_use_implementation(int implementation);
 
 
 
+// Functions to read and write physical pages
+typedef size_t(*ptedit_phys_read_t)(size_t);
+typedef void(*ptedit_phys_write_t)(size_t, size_t);
 
 /**
  * Functions to read and write page tables
@@ -213,26 +145,7 @@ typedef ptedit_entry_t(*ptedit_resolve_t)(void*, pid_t);
 typedef void (*ptedit_update_t)(void*, pid_t, ptedit_entry_t*);
 
 
-/**
- * Resolves the page-table entries of all levels for a virtual address of a given process.
- *
- * @param[in] address The virtual address to resolve
- * @param[in] pid The pid of the process (0 for own process)
- *
- * @return A structure containing the page-table entries of all levels.
- */
-ptedit_resolve_t ptedit_resolve;
 
-/**
- * Updates one or more page-table entries for a virtual address of a given process.
- * The TLB for the given address is flushed after updating the entries.
- *
- * @param[in] address The virtual address
- * @param[in] pid The pid of the process (0 for own process)
- * @param[in] vm A structure containing the values for the page-table entries and a bitmask indicating which entries to update
- *
- */
-ptedit_update_t ptedit_update;
 
 /**
  * Sets a bit directly in the PTE of an address.
@@ -288,7 +201,6 @@ size_t ptedit_pte_get_pfn(void* address, pid_t pid);
 void ptedit_pte_set_pfn(void* address, pid_t pid, size_t pfn);
 
 
-#if defined(__i386__) || defined(__x86_64__) || defined(_WIN64)
 #define PTEDIT_PAGE_PRESENT 1
 
 /**
@@ -377,108 +289,6 @@ typedef struct {
 } ptedit_pte_t;
 #pragma pack(pop)
 
-#elif defined(__aarch64__)
-#define PTEDIT_PAGE_PRESENT 3
-
-
-/**
- * Struct to access the fields of the PGD
- */
-typedef struct {
-    size_t present : 2;
-    size_t ignored_1 : 10;
-    size_t pfn : 36;
-    size_t reserved : 4;
-    size_t ignored_2 : 7;
-    size_t pxn_table : 1;
-    size_t xn_table : 1;
-    size_t ap_table : 2;
-    size_t ns_table : 1;
-}__attribute__((__packed__)) ptedit_pgd_t;
-
-
-/**
- * Struct to access the fields of the P4D
- */
-typedef ptedit_pgd_t ptedit_p4d_t;
-
-
-/**
- * Struct to access the fields of the PUD
- */
-typedef ptedit_pgd_t ptedit_pud_t;
-
-
-/**
- * Struct to access the fields of the PMD
- */
-typedef ptedit_pgd_t ptedit_pmd_t;
-
-
-/**
- * Struct to access the fields of the PGD when mapping a large page
- */
-typedef struct {
-    size_t present : 2;
-    size_t memory_attributes_index : 3;
-    size_t non_secure : 1;
-    size_t access_permissions : 2;
-    size_t shareability_field : 2;
-    size_t access_flag : 1;
-    size_t not_global : 1;
-    size_t reserved_1 : 18;
-    size_t pfn : 18;
-    size_t reserved_2 : 4;
-    size_t contiguous : 1;
-    size_t privileged_execute_never : 1;
-    size_t execute_never : 1;
-    size_t ingored_1 : 4;
-    size_t ignored_2 : 5;
-}__attribute__((__packed__)) ptedit_pgd_large_t;
-
-
-/**
- * Struct to access the fields of the PMD when mapping a large page
- */
-typedef struct {
-    size_t present : 2;
-    size_t memory_attributes_index : 3;
-    size_t non_secure : 1;
-    size_t access_permissions : 2;
-    size_t shareability_field : 2;
-    size_t access_flag : 1;
-    size_t not_global : 1;
-    size_t reserved_1 : 9;
-    size_t pfn : 27;
-    size_t reserved_2 : 4;
-    size_t contiguous : 1;
-    size_t privileged_execute_never : 1;
-    size_t execute_never : 1;
-    size_t ingored_1 : 4;
-    size_t ignored_2 : 5;
-}__attribute__((__packed__)) ptedit_pmd_large_t;
-
-
-/**
- * Struct to access the fields of the PTE
- */
-typedef struct {
-    size_t present : 2;
-    size_t memory_attributes_index : 3;
-    size_t non_secure : 1;
-    size_t access_permissions : 2;
-    size_t shareability_field : 2;
-    size_t access_flag : 1;
-    size_t not_global : 1;
-    size_t pfn : 36;
-    size_t reserved_1 : 4;
-    size_t contiguous : 1;
-    size_t privileged_execute_never : 1;
-    size_t execute_never : 1;
-    size_t ingored_1 : 4;
-    size_t ignored_2 : 5;
-}__attribute__((__packed__)) ptedit_pte_t;
-#endif
 
 /**
  * Casts a paging structure entry (e.g., page table) to a structure with easy access to its fields
@@ -776,4 +586,17 @@ void ptedit_print_entry_line(size_t entry, int line);
 
 /** @} */
 
-#endif
+
+/* Previously missing declarations */
+ptedit_entry_t ptedit_resolve_kernel(void* address, pid_t pid);
+void ptedit_update_kernel(void* address, pid_t pid, ptedit_entry_t* vm);
+void ptedit_update_user_ext(void* address, pid_t pid, ptedit_entry_t* vm, ptedit_phys_write_t pset);
+/*static inline size_t ptedit_phys_read_map(size_t address);
+static inline void ptedit_phys_write_map(size_t address, size_t value);
+static inline size_t ptedit_phys_read_pread(size_t address);
+static inline void ptedit_phys_write_pwrite(size_t address, size_t value);
+static ptedit_entry_t ptedit_resolve_user_ext(void* address, pid_t pid, ptedit_phys_read_t deref);
+static ptedit_entry_t ptedit_resolve_user(void* address, pid_t pid);
+static ptedit_entry_t ptedit_resolve_user_map(void* address, pid_t pid);
+static void ptedit_update_user(void* address, pid_t pid, ptedit_entry_t* vm);
+static void ptedit_update_user_map(void* address, pid_t pid, ptedit_entry_t* vm);*/
