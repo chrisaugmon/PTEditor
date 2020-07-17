@@ -1,7 +1,6 @@
 /* See LICENSE file for license and copyright information */
 
-#ifndef PTEDITOR_MODULE_H
-#define PTEDITOR_MODULE_H
+#pragma once
 
 #if defined(__linux__) || defined(__linux) || defined(__unix__) || defined(LINUX) || defined(UNIX)
 #define LINUX
@@ -147,5 +146,3 @@ typedef struct {
 #define PTEDITOR_SET_PAT CTL_CODE(FILE_DEVICE_UNKNOWN, 0x808, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #define PTEDITOR_GET_PAT CTL_CODE(FILE_DEVICE_UNKNOWN, 0x809, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #endif
-
-#endif // PTEDITOR_MODULE_H

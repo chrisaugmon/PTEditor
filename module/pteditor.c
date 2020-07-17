@@ -318,7 +318,7 @@ static int update_vm(ptedit_entry_t* new_entry, int lock) {
   }
 
   if((old_entry.valid & PTEDIT_VALID_MASK_PTE) && (new_entry->valid & PTEDIT_VALID_MASK_PTE)) {
-      printk("[pteditor-module] Updating PTE\n");
+     // printk("[pteditor-module] Updating PTE\n");
       set_pte(old_entry.pte, native_make_pte(new_entry->pte));
   }
 
