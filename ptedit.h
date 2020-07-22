@@ -586,17 +586,11 @@ void ptedit_print_entry_line(size_t entry, int line);
 
 /** @} */
 
+// Issue shootdowns to CPUs specified by a mask
+void ptedit_tlb_shootdown(unsigned long cpu_mask);
+
 
 /* Previously missing declarations */
 ptedit_entry_t ptedit_resolve_kernel(void* address, pid_t pid);
 void ptedit_update_kernel(void* address, pid_t pid, ptedit_entry_t* vm);
 void ptedit_update_user_ext(void* address, pid_t pid, ptedit_entry_t* vm, ptedit_phys_write_t pset);
-/*static inline size_t ptedit_phys_read_map(size_t address);
-static inline void ptedit_phys_write_map(size_t address, size_t value);
-static inline size_t ptedit_phys_read_pread(size_t address);
-static inline void ptedit_phys_write_pwrite(size_t address, size_t value);
-static ptedit_entry_t ptedit_resolve_user_ext(void* address, pid_t pid, ptedit_phys_read_t deref);
-static ptedit_entry_t ptedit_resolve_user(void* address, pid_t pid);
-static ptedit_entry_t ptedit_resolve_user_map(void* address, pid_t pid);
-static void ptedit_update_user(void* address, pid_t pid, ptedit_entry_t* vm);
-static void ptedit_update_user_map(void* address, pid_t pid, ptedit_entry_t* vm);*/

@@ -464,6 +464,21 @@ static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
         set_pat(ioctl_param);
         return 0;
     }
+	case PTEDITOR_IOCTL_CMD_TLB_SHOOTDOWN:
+	{
+		struct cpumask *mask;
+        struct mm_struct *mm = this_cpu_read(cpu_tlbstate.loaded_mm);
+		struct flush_tlb_info info = {
+                .mm = mm, .start = 0, .end = TLB_FLUSH_ALL,
+				.stride_shift = 0, .freed_tables = true,
+				.new_tlb_gen = inc_mm_tlb_gen(mm)};
+
+		mask = vmalloc(sizeof(struct cpumask));
+		mask->bits[0] = *(unsigned long*)ioctl_param;
+		flush_tlb_others(mask, &info);
+		vfree((void*)mask);
+		return 0;
+	}
 
     default:
         return -1;

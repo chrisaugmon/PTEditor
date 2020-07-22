@@ -17,6 +17,7 @@
 
 #include "ptedit.h"
 
+extern ptedit_resolve_t ptedit_resolve;
 
 int main(int argc, char *argv[]) {
   size_t address_pfn, target_pfn;

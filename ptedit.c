@@ -564,3 +564,7 @@ void ptedit_pte_set_pfn(void* address, pid_t pid, size_t pfn) {
     vm.valid = PTEDIT_VALID_MASK_PTE;
     ptedit_update(address, pid, &vm);
 }
+
+void ptedit_tlb_shootdown(unsigned long cpu_mask) {
+    ioctl(ptedit_fd, PTEDITOR_IOCTL_CMD_TLB_SHOOTDOWN, (void *)(&cpu_mask));
+}
