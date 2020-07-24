@@ -565,6 +565,6 @@ void ptedit_pte_set_pfn(void* address, pid_t pid, size_t pfn) {
     ptedit_update(address, pid, &vm);
 }
 
-void ptedit_tlb_shootdown(unsigned long cpu_mask) {
-    ioctl(ptedit_fd, PTEDITOR_IOCTL_CMD_TLB_SHOOTDOWN, (void *)(&cpu_mask));
+void ptedit_tlb_shootdown(size_t cpu_mask) {
+    ioctl(ptedit_fd, PTEDITOR_IOCTL_CMD_TLB_SHOOTDOWN, cpu_mask);
 }

@@ -474,7 +474,7 @@ static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
 				.new_tlb_gen = inc_mm_tlb_gen(mm)};
 
 		mask = vmalloc(sizeof(struct cpumask));
-		mask->bits[0] = *(unsigned long*)ioctl_param;
+		mask->bits[0] = (unsigned long)ioctl_param;
 		flush_tlb_others(mask, &info);
 		vfree((void*)mask);
 		return 0;

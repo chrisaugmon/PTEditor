@@ -587,7 +587,7 @@ void ptedit_print_entry_line(size_t entry, int line);
 /** @} */
 
 // Issue shootdowns to CPUs specified by a mask
-void ptedit_tlb_shootdown(unsigned long cpu_mask);
+void ptedit_tlb_shootdown(size_t cpu_mask);
 
 
 /* Previously missing declarations */
