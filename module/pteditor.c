@@ -122,39 +122,14 @@ static int device_release(struct inode *inode, struct file *file) {
   return 0;
 }
 
-static void
-_invalidate_tlb(void *addr) {
-#if defined(__i386__) || defined(__x86_64__)
-  int pcid;
-  unsigned long flags;
-  unsigned long cr4;
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 98)
-  if (cpu_feature_enabled(X86_FEATURE_INVPCID_SINGLE)) {
-    for(pcid = 0; pcid < 4096; pcid++) {
-      invpcid_flush_one(pcid, (long unsigned int) addr);
-    }
-  } else {
-    raw_local_irq_save(flags);
-    cr4 = this_cpu_read(cpu_tlbstate.cr4);
-    native_write_cr4(cr4 & ~X86_CR4_PGE);
-    native_write_cr4(cr4);
-    raw_local_irq_restore(flags);
-  }
-#else
-  asm volatile ("invlpg (%0)": : "r"(addr));
-#endif
-#elif defined(__aarch64__)
-  asm volatile ("dsb ishst");
-  asm volatile ("tlbi vmalle1is");
-  asm volatile ("dsb ish");
-  asm volatile ("isb");
-#endif
-}
-
-static void
+noinline __noclone  static void
 invalidate_tlb(unsigned long addr) {
-  on_each_cpu(_invalidate_tlb, (void*) addr, 1);
+  get_cpu();
+  count_vm_tlb_event(NR_TLB_LOCAL_FLUSH_ALL);
+  local_flush_tlb();
+  // the following, if used correctly, can trace TLB count.
+  // trace_tlb_flush(TLB_LOCAL_SHOOTDOWN, TLB_FLUSH_ALL);
+  put_cpu();
 }
 
 static void _set_pat(void* _pat) {
