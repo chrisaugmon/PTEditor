@@ -329,11 +329,7 @@ static void vm_to_user(ptedit_entry_t* user, vm_t* vm) {
     user->valid = vm->valid;
 }
 
-
-static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
-  switch (ioctl_num) {
-    case PTEDITOR_IOCTL_CMD_VM_RESOLVE:
-    {
+noinline __noclone static void device_ioctl_cmd_vm_resolve(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
         ptedit_entry_t vm_user;
         vm_t vm;
         (void)from_user(&vm_user, (void*)ioctl_param, sizeof(vm_user));
@@ -341,17 +337,19 @@ static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
         resolve_vm(vm_user.vaddr, &vm, !mm_is_locked);
         vm_to_user(&vm_user, &vm);
         (void)to_user((void*)ioctl_param, &vm_user, sizeof(vm_user));
-        return 0;
-    }
-    case PTEDITOR_IOCTL_CMD_VM_UPDATE:
-    {
+}
+
+
+
+noinline __noclone static void device_ioctl_cmd_vm_update(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
         ptedit_entry_t vm_user;
         (void)from_user(&vm_user, (void*)ioctl_param, sizeof(vm_user));
         update_vm(&vm_user, !mm_is_locked);
-        return 0;
-    }
-    case PTEDITOR_IOCTL_CMD_VM_LOCK:
-    {
+	
+}
+
+
+noinline __noclone static long device_ioctl_cmd_vm_lock(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
         struct mm_struct *mm = current->active_mm;
         if(mm_is_locked) {
             printk("[pteditor-module] VM is already locked\n");
@@ -359,10 +357,11 @@ static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
         }
         down_read(&mm->mmap_sem);
         mm_is_locked = true;
-        return 0;
-    }
-    case PTEDITOR_IOCTL_CMD_VM_UNLOCK:
-    {
+	return 0;
+}
+
+noinline __noclone static long device_ioctl_cmd_vm_unlock(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
+
         struct mm_struct *mm = current->active_mm;
         if(!mm_is_locked) {
             printk("[pteditor-module] VM is not locked\n");
@@ -371,23 +370,23 @@ static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
         up_read(&mm->mmap_sem);
         mm_is_locked = false;
         return 0;
-    }
-    case PTEDITOR_IOCTL_CMD_READ_PAGE:
-    {
+}
+
+noinline __noclone static void device_ioctl_cmd_read_page(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
         ptedit_page_t page;
         (void)from_user(&page, (void*)ioctl_param, sizeof(page));
         to_user(page.buffer, phys_to_virt(page.pfn * PAGE_SIZE), PAGE_SIZE);
-        return 0;
-    }
-    case PTEDITOR_IOCTL_CMD_WRITE_PAGE:
-    {
+}
+
+
+noinline __noclone static void device_ioctl_cmd_write_page(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
         ptedit_page_t page;
         (void)from_user(&page, (void*)ioctl_param, sizeof(page));
         (void)from_user(phys_to_virt(page.pfn * PAGE_SIZE), page.buffer, PAGE_SIZE);
-        return 0;
-    }
-    case PTEDITOR_IOCTL_CMD_GET_ROOT:
-    {
+}
+
+
+noinline __noclone static long device_ioctl_cmd_get_root(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
         struct mm_struct *mm;
         ptedit_paging_t paging;
 
@@ -399,9 +398,9 @@ static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
         if(!mm_is_locked) up_read(&mm->mmap_sem);
         (void)to_user((void*)ioctl_param, &paging, sizeof(paging));
         return 0;
-    }
-    case PTEDITOR_IOCTL_CMD_SET_ROOT:
-    {
+}
+
+noinline __noclone static long device_ioctl_cmd_set_root(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
         struct mm_struct *mm;
         ptedit_paging_t paging = {0};
 
@@ -412,14 +411,9 @@ static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
         mm->pgd = (pgd_t*)phys_to_virt(paging.root);
         if(!mm_is_locked) up_read(&mm->mmap_sem);
         return 0;
-    }
-    case PTEDITOR_IOCTL_CMD_GET_PAGESIZE:
-        return PAGE_SIZE;
-    case PTEDITOR_IOCTL_CMD_INVALIDATE_TLB:
-        invalidate_tlb(ioctl_param);
-        return 0;
-    case PTEDITOR_IOCTL_CMD_GET_PAT:
-    {
+}
+
+noinline __noclone static long device_ioctl_cmd_get_pat(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
 #if defined(__i386__) || defined(__x86_64__)
         int low, high;
         size_t pat;
@@ -433,15 +427,10 @@ static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
         (void)to_user((void*)ioctl_param, &value, sizeof(value));
         return 0;
 #endif
-    }
-    case PTEDITOR_IOCTL_CMD_SET_PAT:
-    {
-        set_pat(ioctl_param);
-        return 0;
-    }
-	case PTEDITOR_IOCTL_CMD_TLB_SHOOTDOWN:
-	{
-		struct cpumask *mask;
+}
+
+noinline __noclone static void device_ioctl_cmd_tlb_shootdown(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
+	struct cpumask *mask;
         struct mm_struct *mm = this_cpu_read(cpu_tlbstate.loaded_mm);
 		struct flush_tlb_info info = {
                 .mm = mm, .start = 0, .end = TLB_FLUSH_ALL,
@@ -452,7 +441,66 @@ static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
 		mask->bits[0] = (unsigned long)ioctl_param;
 		flush_tlb_others(mask, &info);
 		vfree((void*)mask);
-		return 0;
+}
+
+static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
+  switch (ioctl_num) {
+    case PTEDITOR_IOCTL_CMD_VM_RESOLVE:
+    {
+	device_ioctl_cmd_vm_resolve(file, ioctl_num, ioctl_param);
+        return 0;
+    }
+    case PTEDITOR_IOCTL_CMD_VM_UPDATE:
+    {
+	
+	device_ioctl_cmd_vm_update(file, ioctl_num, ioctl_param);
+        return 0;
+    }
+    case PTEDITOR_IOCTL_CMD_VM_LOCK:
+    {
+	return device_ioctl_cmd_vm_lock(file, ioctl_num, ioctl_param);
+    }
+    case PTEDITOR_IOCTL_CMD_VM_UNLOCK:
+    {
+	return device_ioctl_cmd_vm_unlock(file, ioctl_num, ioctl_param);
+    }
+    case PTEDITOR_IOCTL_CMD_READ_PAGE:
+    {
+	device_ioctl_cmd_read_page(file, ioctl_num, ioctl_param);
+        return 0;
+    }
+    case PTEDITOR_IOCTL_CMD_WRITE_PAGE:
+    {
+	device_ioctl_cmd_write_page(file, ioctl_num, ioctl_param);
+        return 0;
+    }
+    case PTEDITOR_IOCTL_CMD_GET_ROOT:
+    {
+	return device_ioctl_cmd_get_root(file, ioctl_num, ioctl_param);
+    }
+    case PTEDITOR_IOCTL_CMD_SET_ROOT:
+    {
+	return device_ioctl_cmd_set_root(file, ioctl_num, ioctl_param);
+ 
+    }
+    case PTEDITOR_IOCTL_CMD_GET_PAGESIZE:
+        return PAGE_SIZE;
+    case PTEDITOR_IOCTL_CMD_INVALIDATE_TLB:
+        invalidate_tlb(ioctl_param);
+        return 0;
+    case PTEDITOR_IOCTL_CMD_GET_PAT:
+    {
+	return device_ioctl_cmd_get_pat(file, ioctl_num, ioctl_param);
+    }
+    case PTEDITOR_IOCTL_CMD_SET_PAT:
+    {
+        set_pat(ioctl_param);
+        return 0;
+    }
+	case PTEDITOR_IOCTL_CMD_TLB_SHOOTDOWN:
+	{
+	device_ioctl_cmd_tlb_shootdown(file, ioctl_num, ioctl_param);
+	return 0;
 	}
 
     default:
