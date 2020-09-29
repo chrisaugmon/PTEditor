@@ -28,8 +28,22 @@ ptedit_paging_definition_t ptedit_paging_definition;
 ptedit_resolve_t ptedit_resolve;
 ptedit_update_t ptedit_update;
 
+// Custom API for faster prefetcher logic BEGIN ------------------------------
+void ptedit_hide_page_kernel(void* address, pid_t pid) {
+    ptedit_entry_t vm;
+    vm.vaddr = (size_t)address;
+    vm.pid = (size_t)pid;
+    ioctl(ptedit_fd, PTEDITOR_IOCTL_CMD_VM_RESOLVE, (size_t)&vm);
+}
 
+void ptedit_reveal_page_kernel(void* address, pid_t pid) {
+    ptedit_entry_t vm;
+    vm.vaddr = (size_t)address;
+    vm.pid = (size_t)pid;
+    ioctl(ptedit_fd, PTEDITOR_IOCTL_CMD_VM_RESOLVE, (size_t)&vm);
+}
 
+// Custom API for faster prefetcher logic END --------------------------------
 // ---------------------------------------------------------------------------
 ptedit_entry_t ptedit_resolve_kernel(void* address, pid_t pid) {
     ptedit_entry_t vm;

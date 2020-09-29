@@ -348,6 +348,14 @@ noinline __noclone static void device_ioctl_cmd_vm_update(struct file *file, uns
 	
 }
 
+noinline __noclone static void device_ioctl_cmd_vm_hide_page(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
+    printk("[pteditor-module] hide_page called\n");
+}
+
+noinline __noclone static void device_ioctl_cmd_vm_reveal_page(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
+
+    printk("[pteditor-module] reveal_page called\n");
+}
 
 noinline __noclone static long device_ioctl_cmd_vm_lock(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param) {
         struct mm_struct *mm = current->active_mm;
@@ -455,6 +463,16 @@ static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
 	
 	device_ioctl_cmd_vm_update(file, ioctl_num, ioctl_param);
         return 0;
+    }
+    case PTEDITOR_IOCTL_CMD_VM_HIDE_PAGE:
+    {
+    	device_ioctl_cmd_vm_hide_page(file, ioctl_num, ioctl_param);
+	return 0;
+    }
+    case PTEDITOR_IOCTL_CMD_VM_REVEAL_PAGE:
+    {
+    	device_ioctl_cmd_vm_reveal_page(file, ioctl_num, ioctl_param);
+	return 0;
     }
     case PTEDITOR_IOCTL_CMD_VM_LOCK:
     {
