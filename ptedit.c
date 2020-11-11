@@ -17,6 +17,7 @@ static int ptedit_umem;
 static int ptedit_pagesize;
 static size_t ptedit_paging_root;
 static unsigned char* ptedit_vmem;
+static unsigned initialized = 0;
 
 typedef struct {
     int has_pgd, has_p4d, has_pud, has_pmd, has_pt;
@@ -327,6 +328,9 @@ void ptedit_print_entry_t(ptedit_entry_t entry) {
 
 // ---------------------------------------------------------------------------
 int ptedit_init() {
+    if (initialized)
+        return 0;
+
     ptedit_fd = open(PTEDITOR_DEVICE_PATH, O_RDONLY);
     if (ptedit_fd < 0) {
         fprintf(stderr, PTEDIT_COLOR_RED "[-]" PTEDIT_COLOR_RESET "Error: Could not open PTEditor device: %s\n", PTEDITOR_DEVICE_PATH);
@@ -347,6 +351,8 @@ int ptedit_init() {
     ptedit_paging_definition.pmd_entries = 9;
     ptedit_paging_definition.pt_entries = 9;
     ptedit_paging_definition.page_offset = 12;
+    initialized = 1;
+
     return 0;
 }
 
@@ -359,6 +365,7 @@ void ptedit_cleanup() {
     if (ptedit_umem > 0) {
         close(ptedit_umem);
     }
+    initialized = 0;
 }
 
 
@@ -567,4 +574,9 @@ void ptedit_pte_set_pfn(void* address, pid_t pid, size_t pfn) {
 
 void ptedit_tlb_shootdown(size_t cpu_mask) {
     ioctl(ptedit_fd, PTEDITOR_IOCTL_CMD_TLB_SHOOTDOWN, cpu_mask);
+}
+
+void ptedit_map_page(void* address, size_t pfn) {
+    ptedit_page_t page_object = {pfn, (size_t)address, 0, NULL};
+    ioctl(ptedit_fd, PTEDITOR_IOCTL_CMD_MAP_PAGE, &page_object);
 }

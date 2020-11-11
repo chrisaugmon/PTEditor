@@ -589,6 +589,8 @@ void ptedit_print_entry_line(size_t entry, int line);
 // Issue shootdowns to CPUs specified by a mask
 void ptedit_tlb_shootdown(size_t cpu_mask);
 
+// Map an address to a provided pfn
+void ptedit_map_page(void* address, size_t pfn);
 
 /* Previously missing declarations */
 ptedit_entry_t ptedit_resolve_kernel(void* address, pid_t pid);

@@ -11,6 +11,7 @@
 #include <linux/ptrace.h>
 #include <linux/proc_fs.h>
 #include <linux/kprobes.h>
+#include <linux/page_ref.h>
 
 #include "pteditor.h"
 
@@ -477,6 +478,34 @@ static long device_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
 		mask->bits[0] = (unsigned long)ioctl_param;
 		flush_tlb_others(mask, &info);
 		vfree((void*)mask);
+		return 0;
+	}
+	case PTEDITOR_IOCTL_CMD_MAP_PAGE:
+	{
+        ptedit_page_t paging_struct;
+        struct page *page;
+        ptedit_entry_t entry;
+
+        from_user(&paging_struct, (void *)ioctl_param, sizeof(paging_struct));
+        
+        //pfn = (vm.pte->pte & (((1ull << 40) - 1) << 12)) >> 12;
+
+        entry.pid = 0;
+        entry.vaddr = paging_struct.vaddr;
+        entry.pte = 0;
+        entry.pte |= paging_struct.pfn << 12;
+        entry.pte |= 1ull; // Present bit
+        entry.pte |= 1ull << 1; // Write bit
+        entry.pte |= 1ull << 2; // User-mode access bit
+        entry.pte |= 1ull << 63;  // NX bit
+        entry.valid = PTEDIT_VALID_MASK_PTE; // Only update PTE
+        
+        update_vm(&entry, !mm_is_locked);
+
+        page = pfn_to_page(paging_struct.pfn);
+        atomic_inc(&page->_mapcount);
+        atomic_inc(&page->_refcount);
+        printk("Mapping addr=%zx to pfn=%zx", paging_struct.vaddr, paging_struct.pfn);
 		return 0;
 	}
 
